@@ -1,0 +1,2621 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>鱼塘养殖记录与统计系统</title>
+  <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    body {
+      background: #f0f5f0;
+      padding: 0.5rem;
+      font-size: 1rem;
+      color: #333;
+    }
+
+    .main-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      max-width: 1200px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .title {
+      font-size: 1.6rem;
+      font-weight: bold;
+      margin: 1rem 0;
+      text-align: center;
+      color: #2c662d;
+      position: relative;
+      padding-bottom: 0.5rem;
+    }
+
+    .title:after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 4px;
+      background: #42b983;
+      border-radius: 2px;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 1.1rem;
+      color: #444;
+      font-weight: 600;
+    }
+
+    .date-select-group {
+      display: flex;
+      gap: 0.8rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .date-select {
+      flex: 1;
+      min-width: 120px;
+    }
+
+    select, input, textarea {
+      width: 100%;
+      padding: 0.7rem;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      transition: all 0.3s ease;
+    }
+
+    /* 调整投喂量输入框，确保能显示三位数多一点 */
+    .amount-input {
+      width: 100%;
+      font-size: 1.2rem;
+      padding: 0.4rem 0.6rem; /* 减少内边距 */
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      min-width: 70px; /* 刚好显示三位数多一点 */
+      max-width: 90px; /* 限制最大宽度 */
+      text-align: center;
+    }
+
+    .number-input {
+      -webkit-appearance: none;
+      -moz-appearance: textfield;
+    }
+
+    select:focus, input:focus, textarea:focus {
+      outline: none;
+      border-color: #42b983;
+      box-shadow: 0 0 0 3px rgba(66, 185, 131, 0.2);
+    }
+
+    select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23555' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 20px;
+      height: 50px;
+      cursor: pointer;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 0.6rem;
+      margin: 1.2rem 0;
+      width: 100%;
+      flex-wrap: wrap;
+    }
+
+    button {
+      flex: 1;
+      padding: 0.8rem;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: bold;
+      min-height: 48px;
+      min-width: 100px;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    #exportBtn { background: #2196f3; }
+    .admin-btn { background: #e53935; }
+    .confirm-btn { background: #43a047; }
+    .cancel-btn { background: #757575; }
+    .add-btn { background: #2196f3; }
+    .delete-btn { background: #e53935; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+    }
+
+    th, td {
+      border: 2px solid #e0e0e0;
+      padding: 0.5rem 0.3rem;
+      text-align: center;
+    }
+
+    th {
+      background: #e8f5e9;
+      font-size: 1rem;
+      font-weight: bold;
+      color: #2c662d;
+    }
+
+    .record-table th:nth-child(1) { width: 40px; }
+    .record-table th:nth-child(6) { width: 25%; } /* 增加损耗列宽度 */
+    .record-table th:nth-child(7) { width: 35%; } /* 增加用药记录列宽度 */
+
+    /* 调整饲料列宽度，适应缩小后的输入框 */
+    .record-table th:nth-child(2),
+    .record-table th:nth-child(3),
+    .record-table th:nth-child(4),
+    .record-table th:nth-child(5) {
+      width: 80px; /* 缩小宽度，适应输入框 */
+    }
+
+    .vertical-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+
+    .day-number {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      height: 100%;
+    }
+
+    .record-table td:nth-child(6),
+    .record-table td:nth-child(7) {
+      white-space: normal;
+      vertical-align: middle;
+      min-height: 60px;
+      padding: 0.5rem;
+    }
+
+    .table-container {
+      margin: 1.2rem 0;
+      border: 2px solid #e8f5e9;
+      padding: 0.8rem;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fafefa;
+      min-height: 100px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .table-placeholder {
+      text-align: center;
+      padding: 2rem 0;
+      color: #999;
+      font-style: italic;
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 10px;
+      flex-grow: 1;
+    }
+
+    .record-table, .stats-table, .monthly-table {
+      min-width: 680px; /* 增加最小宽度，确保表格显示正常 */
+    }
+
+    .section-divider {
+      height: 2px;
+      background: linear-gradient(to right, transparent, #42b983, transparent);
+      margin: 1.2rem 0;
+    }
+
+    .section-title {
+      font-size: 1.3rem;
+      color: #2c662d;
+      margin: 1.2rem 0 0.8rem;
+      font-weight: bold;
+      padding-left: 0.5rem;
+      border-left: 4px solid #42b983;
+    }
+
+    /* 损耗和用药记录输入框延长一半 */
+    .loss-input, .medicine-input {
+      width: 100%;
+      font-size: 1rem;
+      padding: 0.5rem;
+      min-height: 60px;
+      resize: vertical;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-family: inherit;
+      min-width: 180px; /* 基础宽度增加 */
+    }
+
+    .status-message {
+      padding: 0.7rem;
+      border-radius: 6px;
+      margin: 0.8rem 0;
+      text-align: center;
+      font-weight: 500;
+      display: none;
+    }
+    
+    .status-success {
+      background: #e8f5e9;
+      color: #2c662d;
+      border: 1px solid #42b983;
+    }
+    
+    .status-error {
+      background: #ffebee;
+      color: #c62828;
+      border: 1px solid #ef5350;
+    }
+    
+    .status-warning {
+      background: #fff8e1;
+      color: #e65100;
+      border: 1px solid #ffb74d;
+    }
+
+    .stats-panel {
+      background: #f9fdf9;
+      border-radius: 10px;
+      padding: 1rem;
+      margin: 1.2rem 0;
+      border: 2px solid #e8f5e9;
+      position: relative;
+    }
+
+    .stats-filters {
+      background: white;
+      padding: 0.8rem;
+      border-radius: 8px;
+      margin-bottom: 1.2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .stats-results {
+      margin-top: 1.2rem;
+    }
+
+    .stats-summary {
+      margin-bottom: 1.5rem;
+    }
+
+    .stats-tabs {
+      display: flex;
+      margin-bottom: 0.8rem;
+      border-bottom: 2px solid #e0e0e0;
+      overflow-x: auto;
+      padding-bottom: 0.3rem;
+    }
+
+    .stats-tab {
+      padding: 0.6rem 1.2rem;
+      cursor: pointer;
+      font-weight: bold;
+      color: #666;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+      font-size: 1rem;
+      white-space: nowrap;
+    }
+
+    .stats-tab.active {
+      color: #2c662d;
+      border-bottom-color: #42b983;
+    }
+
+    .stats-tab-content {
+      display: none;
+    }
+
+    .stats-tab-content.active {
+      display: block;
+    }
+
+    .edit-lock-tooltip {
+      position: relative;
+    }
+
+    .edit-lock-tooltip:hover:after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: white;
+      padding: 0.4rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      white-space: nowrap;
+      z-index: 100;
+      margin-bottom: 5px;
+    }
+
+    .table-scroll::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .table-scroll::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+
+    .table-scroll::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 4px;
+    }
+
+    tr:hover {
+      background-color: #f9fdf9;
+    }
+
+    .icon {
+      width: 18px;
+      height: 18px;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    .auto-save-indicator {
+      position: fixed;
+      bottom: 15px;
+      right: 15px;
+      background: rgba(66, 185, 131, 0.9);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .auto-save-indicator.visible {
+      opacity: 1;
+    }
+
+    .current-data-info {
+      font-size: 0.9rem;
+      color: #666;
+      text-align: center;
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+      background: #f5f9f5;
+      border-radius: 6px;
+    }
+
+    .export-loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 255, 255, 0.9);
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      z-index: 2000;
+      display: none;
+    }
+
+    .export-guide {
+      background: #f0f7ff;
+      border-left: 4px solid #2196f3;
+      padding: 0.8rem;
+      margin: 1rem 0;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      color: #3366cc;
+    }
+
+    .guide-title {
+      font-weight: bold;
+      margin-bottom: 0.3rem;
+    }
+
+    .guide-steps {
+      padding-left: 1.2rem;
+    }
+
+    .guide-steps li {
+      margin: 0.3rem 0;
+    }
+
+    /* 统计加载提示 */
+    .stats-loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 255, 255, 0.9);
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      display: none;
+      z-index: 10;
+    }
+
+    /* 管理员功能样式 */
+    .admin-controls {
+      margin: 1rem 0;
+      padding: 1rem;
+      background: #fff8e1;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .admin-controls.visible {
+      display: block;
+    }
+
+    .admin-section {
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px dashed #ffb74d;
+    }
+
+    .admin-section:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    .admin-section-title {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: #e65100;
+      margin-bottom: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 3000;
+      display: none;
+    }
+
+    .modal-overlay.visible {
+      display: flex;
+    }
+
+    .modal {
+      background: white;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 500px;
+      padding: 1.5rem;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-title {
+      font-size: 1.3rem;
+      font-weight: bold;
+      margin-bottom: 1rem;
+      color: #333;
+      text-align: center;
+    }
+
+    .modal-body {
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-footer {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .login-form-group {
+      margin-bottom: 1rem;
+    }
+
+    .login-form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+
+    /* 记录人列表样式 */
+    .record-person-list {
+      max-height: 200px;
+      overflow-y: auto;
+      margin: 1rem 0;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+    }
+
+    .record-person-item {
+      padding: 0.6rem 0.8rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #eee;
+    }
+
+    .record-person-item:last-child {
+      border-bottom: none;
+    }
+
+    .delete-record-controls {
+      display: flex;
+      gap: 0.8rem;
+      align-items: center;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .delete-record-controls .form-group {
+      flex: 1;
+      min-width: 120px;
+    }
+
+    .title-edit-container {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .title-edit-input {
+      flex: 1;
+    }
+
+    /* 管理员登录/退出按钮 */
+    .admin-login-btn, .admin-logout-btn {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      padding: 0.4rem 0.8rem;
+      font-size: 0.9rem;
+      min-width: auto;
+      white-space: nowrap;
+    }
+
+    .admin-logout-btn {
+      background: #e53935;
+      display: none;
+    }
+
+    .admin-logout-btn.visible {
+      display: flex;
+    }
+
+    .danger-zone {
+      background: #ffebee;
+      padding: 1rem;
+      border-radius: 6px;
+      margin-top: 1rem;
+    }
+
+    .danger-zone-title {
+      color: #c62828;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .data-records-list {
+      max-height: 200px;
+      overflow-y: auto;
+      margin: 1rem 0;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+    }
+
+    .data-record-item {
+      padding: 0.6rem 0.8rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #eee;
+    }
+
+    .data-record-item:last-child {
+      border-bottom: none;
+    }
+
+    .record-info {
+      text-align: left;
+    }
+
+    .record-date {
+      font-size: 0.9rem;
+      color: #666;
+    }
+
+    /* 统一并缩短所有红色删除按钮的长度 */
+    .delete-btn {
+      width: 70px; /* 固定宽度，确保所有按钮长度一致 */
+      min-width: 70px; /* 固定最小宽度 */
+      padding: 0.2rem 0.3rem; /* 减少内边距 */
+      font-size: 0.8rem; /* 适当调整字体大小 */
+      white-space: nowrap;
+      flex: none !important; /* 强制不伸缩 */
+    }
+
+    /* 记录人列表中的删除按钮额外调整 */
+    .record-person-item .delete-btn {
+      width: 60px;
+      min-width: 60px;
+    }
+
+    /* 特殊调整"一键删除所有记录数据"按钮宽度 */
+    .delete-all-btn {
+      width: auto !important;
+      min-width: 160px !important;
+      padding: 0.3rem 0.8rem !important;
+    }
+
+    /* 呼吸效果动画 */
+    @keyframes breathing {
+      0% { opacity: 1; }
+      50% { opacity: 0.6; }
+      100% { opacity: 1; }
+    }
+    
+    .editing-breathing-bg {
+      animation: breathing 1.5s ease-in-out infinite;
+    }
+
+    /* 响应式调整 */
+    @media (max-width: 768px) {
+      .main-card {
+        padding: 0.8rem;
+      }
+
+      .title {
+        font-size: 1.4rem;
+        margin: 1.5rem 0 1rem 0;
+      }
+
+      .admin-login-btn, .admin-logout-btn {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.85rem;
+        top: 0.8rem;
+        right: 0.8rem;
+      }
+
+      .admin-controls {
+        padding: 0.8rem;
+        margin: 0.8rem 0;
+      }
+
+      .admin-section {
+        margin-bottom: 1rem;
+        padding-bottom: 0.8rem;
+      }
+
+      .admin-section-title {
+        font-size: 1rem;
+        margin-bottom: 0.6rem;
+      }
+
+      .form-group {
+        margin-bottom: 0.8rem;
+      }
+
+      .form-group label {
+        font-size: 1rem;
+        margin-bottom: 0.3rem;
+      }
+
+      button {
+        padding: 0.6rem;
+        font-size: 0.9rem;
+        min-height: auto;
+      }
+
+      .record-person-item, .data-record-item {
+        padding: 0.5rem 0.6rem;
+      }
+
+      .record-person-item span, .data-record-item .record-info {
+        font-size: 0.9rem;
+      }
+
+      /* 手机端删除按钮进一步缩短 */
+      .delete-btn {
+        width: 50px;
+        min-width: 50px;
+        padding: 0.1rem 0.2rem;
+        font-size: 0.7rem;
+      }
+
+      /* 记录人列表中的删除按钮在手机端 */
+      .record-person-item .delete-btn {
+        width: 45px;
+        min-width: 45px;
+      }
+
+      /* 手机端"一键删除所有记录数据"按钮调整 */
+      .delete-all-btn {
+        min-width: 140px !important;
+        font-size: 0.75rem !important;
+      }
+
+      .title-edit-container {
+        flex-direction: column;
+        gap: 0.6rem;
+      }
+
+      .title-edit-input {
+        width: 100%;
+      }
+
+      .delete-record-controls {
+        gap: 0.6rem;
+      }
+
+      /* 手机端输入框进一步优化 */
+      .amount-input {
+        min-width: 60px;
+        max-width: 80px;
+        padding: 0.3rem 0.5rem;
+        font-size: 1rem;
+      }
+      
+      .loss-input, .medicine-input {
+        min-width: 140px;
+        font-size: 0.9rem;
+        padding: 0.4rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .admin-section-title {
+        font-size: 0.95rem;
+      }
+
+      .danger-zone-title {
+        font-size: 0.95rem;
+      }
+
+      .danger-zone p {
+        font-size: 0.85rem;
+      }
+
+      .admin-login-btn span, .admin-logout-btn span {
+        display: none;
+      }
+
+      .admin-login-btn, .admin-logout-btn {
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        border-radius: 50%;
+        justify-content: center;
+      }
+
+      .modal {
+        padding: 1rem;
+      }
+
+      .modal-title {
+        font-size: 1.1rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="main-card">
+    <h1 class="title" id="systemTitle">鱼塘养殖记录与统计系统</h1>
+
+    <!-- 管理员登录/退出按钮 -->
+    <button class="admin-login-btn" id="adminLoginBtn" onclick="showAdminLoginModal()">
+      <i class="fas fa-lock"></i> <span>管理员</span>
+    </button>
+    <button class="admin-logout-btn" id="adminLogoutBtn" onclick="adminLogout()">
+      <i class="fas fa-sign-out-alt"></i> <span>退出</span>
+    </button>
+
+    <div id="statusMessage" class="status-message"></div>
+
+    <!-- 导出文件指引（手机用户可见） -->
+    <div class="export-guide" id="exportGuide" style="display: none;">
+      <div class="guide-title">📱 手机文件查找指引：</div>
+      <ul class="guide-steps">
+        <li>1. 导出的文件保存在"下载"文件夹中</li>
+        <li>2. 可通过"文件管理"APP → "下载"目录查找</li>
+        <li>3. 部分手机可在"我的文件" → "下载"中查看</li>
+      </ul>
+    </div>
+
+    <!-- 管理员控制面板 -->
+    <div class="admin-controls" id="adminControls">
+      <div class="admin-section">
+        <div class="admin-section-title">
+          <i class="fas fa-user-cog"></i> 记录人管理
+        </div>
+        <div class="form-group">
+          <label for="newRecorderName">添加新记录人</label>
+          <div style="display: flex; gap: 0.5rem;">
+            <input type="text" id="newRecorderName" placeholder="输入新记录人姓名">
+            <button class="add-btn" style="flex: none; min-width: auto; padding: 0 1rem;" onclick="addRecorder()">
+              <i class="fas fa-plus"></i> 添加
+            </button>
+          </div>
+        </div>
+        <div class="record-person-list" id="recordPersonList">
+          <!-- 记录人列表将动态生成 -->
+        </div>
+      </div>
+
+      <div class="admin-section">
+        <div class="admin-section-title">
+          <i class="fas fa-heading"></i> 系统标题设置
+        </div>
+        <div class="title-edit-container">
+          <input type="text" id="newSystemTitle" class="title-edit-input" placeholder="输入新的系统标题">
+          <button class="confirm-btn" onclick="updateSystemTitle()">
+            <i class="fas fa-save"></i> 保存
+          </button>
+        </div>
+      </div>
+
+      <div class="admin-section">
+        <div class="admin-section-title">
+          <i class="fas fa-database"></i> 记录数据管理
+        </div>
+        <div class="form-group">
+          <label>删除特定记录</label>
+          <div class="delete-record-controls">
+            <div class="form-group">
+              <select id="deletePondSelect">
+                <option value="">选择塘口</option>
+                <option value="1号大塘">1号大塘</option>
+                <option value="2号大塘">2号大塘</option>
+                <option value="3号大塘">3号大塘</option>
+                <option value="4号大塘">4号大塘</option>
+                <option value="5号大塘">5号大塘</option>
+                <option value="1号小塘">1号小塘</option>
+                <option value="2号小塘">2号小塘</option>
+                <option value="4号小塘">4号小塘</option>
+                <option value="5号小塘">5号小塘</option>
+                <option value="东三十亩">东三十亩</option>
+                <option value="西三十亩">西三十亩</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <select id="deleteYearSelect">
+                <!-- 年份选项动态生成 -->
+              </select>
+            </div>
+            <div class="form-group">
+              <select id="deleteMonthSelect">
+                <option value="1">1月</option>
+                <option value="2">2月</option>
+                <option value="3">3月</option>
+                <option value="4">4月</option>
+                <option value="5">5月</option>
+                <option value="6">6月</option>
+                <option value="7">7月</option>
+                <option value="8">8月</option>
+                <option value="9">9月</option>
+                <option value="10">10月</option>
+                <option value="11">11月</option>
+                <option value="12">12月</option>
+              </select>
+            </div>
+            <button class="delete-btn" style="flex: none;" onclick="deleteSpecificRecord()">
+              <i class="fas fa-trash"></i> 删除
+            </button>
+          </div>
+        </div>
+
+        <div class="danger-zone">
+          <div class="danger-zone-title">
+            <i class="fas fa-exclamation-triangle"></i> 危险操作
+          </div>
+          <button class="delete-btn delete-all-btn" onclick="showDeleteAllConfirm()">
+            <i class="fas fa-trash-alt"></i> 一键删除所有记录数据
+          </button>
+          <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #c62828;">
+            警告：此操作将删除系统中所有记录的数据，且无法恢复，请谨慎操作！
+          </p>
+        </div>
+
+        <div style="margin-top: 1rem;">
+          <label>现有记录列表</label>
+          <div class="data-records-list" id="dataRecordsList">
+            <!-- 数据记录列表将动态生成 -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="current-data-info" id="currentDataInfo">
+      正在查看：<span id="currentPondText">未选择塘口</span> · <span id="currentDateText">2025年8月</span>
+    </div>
+
+    <div class="section-title">记录管理</div>
+    
+    <div class="form-group">
+      <label>选择记录年月</label>
+      <div class="date-select-group">
+        <select id="recordYearSelect" class="date-select" onchange="handleYearMonthChange()">
+          <!-- 年份选项动态生成 -->
+        </select>
+        <select id="recordMonthSelect" class="date-select" onchange="handleYearMonthChange()">
+          <option value="1">1月</option>
+          <option value="2">2月</option>
+          <option value="3">3月</option>
+          <option value="4">4月</option>
+          <option value="5">5月</option>
+          <option value="6">6月</option>
+          <option value="7">7月</option>
+          <option value="8">8月</option>
+          <option value="9">9月</option>
+          <option value="10">10月</option>
+          <option value="11">11月</option>
+          <option value="12">12月</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>记录人</label>
+      <select id="recorder" onchange="scheduleAutoSave()">
+        <option value="">请选择</option>
+        <!-- 记录人选项将动态生成 -->
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>塘口 <span style="color: #e65100; font-size: 0.9rem;">(切换塘口将加载对应数据)</span></label>
+      <select id="pond" onchange="handlePondChange()">
+        <option value="">请选择</option>
+        <option value="1号大塘">1号大塘</option>
+        <option value="2号大塘">2号大塘</option>
+        <option value="3号大塘">3号大塘</option>
+        <option value="4号大塘">4号大塘</option>
+        <option value="5号大塘">5号大塘</option>
+        <option value="1号小塘">1号小塘</option>
+        <option value="2号小塘">2号小塘</option>
+        <option value="4号小塘">4号小塘</option>
+        <option value="5号小塘">5号小塘</option>
+        <option value="东三十亩">东三十亩</option>
+        <option value="西三十亩">西三十亩</option>
+      </select>
+    </div>
+
+    <div class="btn-group">
+      <button id="exportBtn" onclick="exportToExcel()">
+        <i class="fas fa-file-export"></i>
+        导出记录
+      </button>
+    </div>
+
+    <div class="table-container">
+      <div class="table-scroll">
+        <table id="recordTable" class="record-table">
+          <thead>
+            <tr>
+              <th><div class="vertical-text">日<br>期</div></th>
+              <th><div class="vertical-text">颗<br>粒</div></th>
+              <th><div class="vertical-text">膨<br>化</div></th>
+              <th><div class="vertical-text">发<br>酵</div></th>
+              <th><div class="vertical-text">粉<br>料</div></th>
+              <th>损耗</th>
+              <th>用药记录</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <!-- 表格内容动态生成 -->
+          </tbody>
+        </table>
+        <div id="tablePlaceholder" class="table-placeholder">请选择塘口和年月以显示记录表格</div>
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <div class="section-title">数据统计分析</div>
+    
+    <div class="stats-panel">
+      <!-- 统计加载提示 -->
+      <div class="stats-loading" id="statsLoading">
+        <div>正在更新统计数据...</div>
+      </div>
+
+      <div class="stats-filters">
+        <div class="form-group">
+          <label>选择统计条件</label>
+          <select id="statsPondSelect" class="date-select" style="margin-bottom: 1rem;">
+            <option value="">所有塘口</option>
+            <option value="1号大塘">1号大塘</option>
+            <option value="2号大塘">2号大塘</option>
+            <option value="3号大塘">3号大塘</option>
+            <option value="4号大塘">4号大塘</option>
+            <option value="5号大塘">5号大塘</option>
+            <option value="1号小塘">1号小塘</option>
+            <option value="2号小塘">2号小塘</option>
+            <option value="4号小塘">4号小塘</option>
+            <option value="5号小塘">5号小塘</option>
+            <option value="东三十亩">东三十亩</option>
+            <option value="西三十亩">西三十亩</option>
+          </select>
+          
+          <label>选择统计时间段</label>
+          <div class="date-select-group">
+            <div class="date-select">
+              <label style="font-size: 1rem; margin-bottom: 0.3rem;">开始年月</label>
+              <select id="startYearSelect" class="date-select">
+                <!-- 年份选项动态生成 -->
+              </select>
+            </div>
+            <div class="date-select">
+              <label style="font-size: 1rem; margin-bottom: 0.3rem;">&nbsp;</label>
+              <select id="startMonthSelect" class="date-select">
+                <option value="1">1月</option>
+                <option value="2">2月</option>
+                <option value="3">3月</option>
+                <option value="4">4月</option>
+                <option value="5">5月</option>
+                <option value="6">6月</option>
+                <option value="7">7月</option>
+                <option value="8">8月</option>
+                <option value="9">9月</option>
+                <option value="10">10月</option>
+                <option value="11">11月</option>
+                <option value="12">12月</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="date-select-group">
+            <div class="date-select">
+              <label style="font-size: 1rem; margin-bottom: 0.3rem;">结束年月</label>
+              <select id="endYearSelect" class="date-select">
+                <!-- 年份选项动态生成 -->
+              </select>
+            </div>
+            <div class="date-select">
+              <label style="font-size: 1rem; margin-bottom: 0.3rem;">&nbsp;</label>
+              <select id="endMonthSelect" class="date-select">
+                <option value="1">1月</option>
+                <option value="2">2月</option>
+                <option value="3">3月</option>
+                <option value="4">4月</option>
+                <option value="5">5月</option>
+                <option value="6">6月</option>
+                <option value="7">7月</option>
+                <option value="8">8月</option>
+                <option value="9">9月</option>
+                <option value="10">10月</option>
+                <option value="11">11月</option>
+                <option value="12">12月</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-results">
+        <!-- 统计标签页 -->
+        <div class="stats-tabs">
+          <div class="stats-tab active" data-tab="feed-summary">投喂量汇总</div>
+          <div class="stats-tab" data-tab="pond-feed-type">塘口-饲料种类</div>
+          <div class="stats-tab" data-tab="loss-by-breed">鱼类损耗统计</div>
+          <div class="stats-tab" data-tab="pond-loss-type">塘口-鱼类损耗</div>
+          <div class="stats-tab" data-tab="monthly-detail">月度明细</div>
+        </div>
+
+        <!-- 1. 投喂量汇总 -->
+        <div class="stats-tab-content active" id="feed-summary">
+          <div class="stats-summary">
+            <h3 style="font-size: 1.2rem; margin-bottom: 0.8rem; color: #2c662d;">投喂量统计汇总</h3>
+            <div class="table-scroll">
+              <table class="stats-table">
+                <thead>
+                  <tr>
+                    <th>统计项</th>
+                    <th>颗粒饲料（包）</th>
+                    <th>膨化饲料（包）</th>
+                    <th>发酵饲料（包）</th>
+                    <th>粉料（包）</th>
+                    <th>总计（包）</th>
+                  </tr>
+                </thead>
+                <tbody id="totalStatsBody">
+                  <tr>
+                    <td>总投喂量</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. 按塘口-饲料种类统计 -->
+        <div class="stats-tab-content" id="pond-feed-type">
+          <div class="stats-summary">
+            <h3 style="font-size: 1.2rem; margin-bottom: 0.8rem; color: #2c662d;">各塘口饲料种类用量统计</h3>
+            <div class="table-scroll">
+              <table class="stats-table">
+                <thead>
+                  <tr>
+                    <th>塘口</th>
+                    <th>颗粒饲料（包）</th>
+                    <th>膨化饲料（包）</th>
+                    <th>发酵饲料（包）</th>
+                    <th>粉料（包）</th>
+                    <th>总计（包）</th>
+                  </tr>
+                </thead>
+                <tbody id="pondFeedTypeBody">
+                  <tr>
+                    <td>暂无数据</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. 鱼类损耗总统计 -->
+        <div class="stats-tab-content" id="loss-by-breed">
+          <div class="stats-summary">
+            <h3 style="font-size: 1.2rem; margin-bottom: 0.8rem; color: #2c662d;">鱼类损耗总统计</h3>
+            <div class="table-scroll">
+              <table class="stats-table">
+                <thead>
+                  <tr>
+                    <th>鱼类品种</th>
+                    <th>累计数量</th>
+                    <th>主要原因</th>
+                    <th>占比</th>
+                    <th>涉及塘口</th>
+                  </tr>
+                </thead>
+                <tbody id="lossByBreedBody">
+                  <tr>
+                    <td>暂无数据</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. 按塘口-鱼类种类损耗统计 -->
+        <div class="stats-tab-content" id="pond-loss-type">
+          <div class="stats-summary">
+            <h3 style="font-size: 1.2rem; margin-bottom: 0.8rem; color: #2c662d;">各塘口鱼类损耗统计</h3>
+            <div class="table-scroll">
+              <table class="stats-table">
+                <thead>
+                  <tr>
+                    <th>塘口</th>
+                    <th>草鱼</th>
+                    <th>鲫鱼</th>
+                    <th>鮰鱼</th>
+                    <th>黄金鲫</th>
+                    <th>乌青</th>
+                    <th>花鲢</th>
+                    <th>白鲢</th>
+                    <th>鲻鱼</th>
+                    <th>虾</th>
+                    <th>总计</th>
+                  </tr>
+                </thead>
+                <tbody id="pondLossTypeBody">
+                  <tr>
+                    <td>暂无数据</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. 月度明细 -->
+        <div class="stats-tab-content" id="monthly-detail">
+          <div class="stats-summary">
+            <h3 style="font-size: 1.2rem; margin-bottom: 0.8rem; color: #2c662d;">月度统计明细</h3>
+            <div class="table-scroll">
+              <table class="monthly-table">
+                <thead>
+                  <tr>
+                    <th>月份/塘口</th>
+                    <th>总投喂量（包）</th>
+                    <th>平均每日投喂（包）</th>
+                    <th>总损耗数量</th>
+                    <th>用药次数</th>
+                  </tr>
+                </thead>
+                <tbody id="monthlyStatsBody">
+                  <tr>
+                    <td>暂无数据</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 自动保存提示 -->
+  <div id="autoSaveIndicator" class="auto-save-indicator">数据已自动保存</div>
+  
+  <!-- 导出加载提示 -->
+  <div class="export-loading" id="exportLoading">
+    <div>正在导出数据，请稍候...</div>
+  </div>
+
+  <!-- 管理员登录模态框 -->
+  <div class="modal-overlay" id="adminLoginModal">
+    <div class="modal">
+      <div class="modal-title">管理员登录</div>
+      <div class="modal-body">
+        <div class="login-form-group">
+          <label for="adminPassword">请输入管理员密码</label>
+          <input type="password" id="adminPassword" placeholder="输入管理员密码">
+        </div>
+        <p style="font-size: 0.9rem; color: #666; margin-top: 1rem;">
+          提示：默认密码为"admin123"，建议登录后更换密码（功能开发中）
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="cancel-btn" onclick="hideAdminLoginModal()">取消</button>
+        <button class="confirm-btn" onclick="adminLogin()">登录</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 确认删除所有数据模态框 -->
+  <div class="modal-overlay" id="deleteAllConfirmModal">
+    <div class="modal">
+      <div class="modal-title" style="color: #c62828;">
+        <i class="fas fa-exclamation-circle"></i> 确认删除所有数据
+      </div>
+      <div class="modal-body">
+        <p>您确定要删除系统中所有的记录数据吗？</p>
+        <p style="color: #c62828; margin-top: 1rem; font-weight: bold;">
+          此操作不可逆，所有记录将被永久删除，无法恢复！
+        </p>
+        <div style="margin-top: 1rem;">
+          <label for="confirmDeleteText">请输入"DELETE"确认此操作</label>
+          <input type="text" id="confirmDeleteText" placeholder="输入DELETE">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="cancel-btn" onclick="hideDeleteAllConfirmModal()">取消</button>
+        <button class="delete-btn" onclick="deleteAllRecords()">确认删除</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const currentYear = new Date().getFullYear();
+    let currentData = null;
+    let lastModifiedTimes = {};
+    let editClickCount = {};
+    let saveTimeout = null;
+    let isLoading = false;
+    let statsDebounceTimer = null;
+    let isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    let isAdminLoggedIn = false;
+    // 默认管理员密码（实际应用中应加密存储）
+    const ADMIN_PASSWORD = "admin123";
+
+    window.onload = function() {
+      // 手机端显示导出指引
+      if (isMobile) {
+        document.getElementById('exportGuide').style.display = 'block';
+      }
+
+      // 初始化年份选择框
+      const yearSelects = ['recordYearSelect', 'startYearSelect', 'endYearSelect', 'deleteYearSelect'];
+      yearSelects.forEach(id => {
+        const select = document.getElementById(id);
+        for (let y = 2020; y <= currentYear; y++) {
+          const option = document.createElement('option');
+          option.value = y;
+          option.textContent = y + '年';
+          if (y === currentYear) option.selected = true;
+          select.appendChild(option);
+        }
+      });
+      
+      // 设置当前月份
+      const currentMonth = new Date().getMonth() + 1;
+      document.getElementById('recordMonthSelect').value = currentMonth;
+      document.getElementById('startMonthSelect').value = currentMonth;
+      document.getElementById('endMonthSelect').value = currentMonth;
+      document.getElementById('deleteMonthSelect').value = currentMonth;
+      
+      // 初始化记录人列表
+      initRecorders();
+      
+      // 绑定统计标签事件
+      bindStatsTabEvents();
+      
+      // 绑定实时统计事件
+      bindRealTimeStatsEvents();
+      
+      // 更新当前数据标识
+      updateCurrentDataInfo();
+      
+      // 初始化表格显示状态
+      updateTableVisibility(false);
+
+      // 页面加载后自动触发一次统计
+      setTimeout(() => {
+        calculateStatistics();
+      }, 500);
+
+      // 检查管理员登录状态
+      checkAdminLoginStatus();
+
+      // 检查SheetJS库是否加载成功
+      if (typeof XLSX === 'undefined') {
+        showStatus('导出功能依赖的库加载失败，请刷新页面重试', 'error');
+        document.getElementById('exportBtn').disabled = true;
+        document.getElementById('exportBtn').style.opacity = '0.6';
+      }
+    };
+
+    // 初始化记录人列表
+    function initRecorders() {
+      // 从localStorage获取记录人，如无则使用默认值
+      let recorders = JSON.parse(localStorage.getItem('recorders')) || [
+        "王立新", "孙克卢", "老周", "老蔡", "葛韶年", "孙华"
+      ];
+      
+      // 保存到localStorage
+      localStorage.setItem('recorders', JSON.stringify(recorders));
+      
+      // 更新记录人选择框
+      updateRecorderSelect(recorders);
+      
+      // 更新管理员页面的记录人列表
+      updateRecorderList(recorders);
+    }
+
+    // 更新记录人选择框
+    function updateRecorderSelect(recorders) {
+      const recorderSelect = document.getElementById('recorder');
+      // 保留"请选择"选项，清除其他选项
+      while (recorderSelect.options.length > 1) {
+        recorderSelect.remove(1);
+      }
+      
+      // 添加记录人选项
+      recorders.forEach(recorder => {
+        const option = document.createElement('option');
+        option.value = recorder;
+        option.textContent = recorder;
+        recorderSelect.appendChild(option);
+      });
+    }
+
+    // 更新管理员页面的记录人列表
+    function updateRecorderList(recorders) {
+      const listContainer = document.getElementById('recordPersonList');
+      listContainer.innerHTML = '';
+      
+      if (recorders.length === 0) {
+        listContainer.innerHTML = '<div style="padding: 1rem; text-align: center; color: #999;">暂无记录人</div>';
+        return;
+      }
+      
+      recorders.forEach(recorder => {
+        const item = document.createElement('div');
+        item.className = 'record-person-item';
+        item.innerHTML = `
+          <span>${recorder}</span>
+          <button class="delete-btn editing-breathing-bg" 
+                  onclick="deleteRecorder('${escape(recorder)}')">
+            <i class="fas fa-times"></i> 删除
+          </button>
+        `;
+        listContainer.appendChild(item);
+      });
+    }
+
+    // 添加新记录人
+    function addRecorder() {
+      const newRecorderInput = document.getElementById('newRecorderName');
+      const newRecorder = newRecorderInput.value.trim();
+      
+      if (!newRecorder) {
+        showStatus('请输入记录人姓名', 'warning');
+        return;
+      }
+      
+      let recorders = JSON.parse(localStorage.getItem('recorders')) || [];
+      
+      if (recorders.includes(newRecorder)) {
+        showStatus('该记录人已存在', 'warning');
+        return;
+      }
+      
+      recorders.push(newRecorder);
+      localStorage.setItem('recorders', JSON.stringify(recorders));
+      
+      // 更新界面
+      updateRecorderSelect(recorders);
+      updateRecorderList(recorders);
+      
+      newRecorderInput.value = '';
+      showStatus(`已添加记录人：${newRecorder}`, 'success');
+    }
+
+    // 删除记录人
+    function deleteRecorder(encodedRecorder) {
+      const recorder = unescape(encodedRecorder);
+      let recorders = JSON.parse(localStorage.getItem('recorders')) || [];
+      
+      // 至少保留一个记录人
+      if (recorders.length <= 1) {
+        showStatus('至少需要保留一个记录人', 'warning');
+        return;
+      }
+      
+      const newRecorders = recorders.filter(r => r !== recorder);
+      localStorage.setItem('recorders', JSON.stringify(newRecorders));
+      
+      // 更新界面
+      updateRecorderSelect(newRecorders);
+      updateRecorderList(newRecorders);
+      
+      showStatus(`已删除记录人：${recorder}`, 'success');
+    }
+
+    // 更新系统标题
+    function updateSystemTitle() {
+      const newTitleInput = document.getElementById('newSystemTitle');
+      const newTitle = newTitleInput.value.trim();
+      
+      if (!newTitle) {
+        showStatus('请输入系统标题', 'warning');
+        return;
+      }
+      
+      // 更新标题显示
+      document.getElementById('systemTitle').textContent = newTitle;
+      
+      // 保存到localStorage
+      localStorage.setItem('systemTitle', newTitle);
+      
+      newTitleInput.value = '';
+      showStatus('系统标题已更新', 'success');
+    }
+
+    // 显示管理员登录模态框
+    function showAdminLoginModal() {
+      document.getElementById('adminLoginModal').classList.add('visible');
+      document.getElementById('adminPassword').focus();
+    }
+
+    // 隐藏管理员登录模态框
+    function hideAdminLoginModal() {
+      document.getElementById('adminLoginModal').classList.remove('visible');
+      document.getElementById('adminPassword').value = '';
+    }
+
+    // 管理员登录
+    function adminLogin() {
+      const passwordInput = document.getElementById('adminPassword');
+      const password = passwordInput.value.trim();
+      
+      if (password === ADMIN_PASSWORD) {
+        // 登录成功
+        isAdminLoggedIn = true;
+        localStorage.setItem('adminLoggedIn', 'true');
+        
+        // 更新界面
+        document.getElementById('adminLoginModal').classList.remove('visible');
+        document.getElementById('adminLoginBtn').style.display = 'none';
+        document.getElementById('adminLogoutBtn').classList.add('visible');
+        document.getElementById('adminControls').classList.add('visible');
+        
+        // 加载现有数据记录列表
+        loadDataRecordsList();
+        
+        // 填充当前标题到输入框
+        const currentTitle = document.getElementById('systemTitle').textContent;
+        document.getElementById('newSystemTitle').value = currentTitle;
+        
+        showStatus('管理员登录成功', 'success');
+      } else {
+        showStatus('密码错误，请重新输入', 'error');
+        passwordInput.focus();
+      }
+    }
+
+    // 管理员退出登录
+    function adminLogout() {
+      isAdminLoggedIn = false;
+      localStorage.removeItem('adminLoggedIn');
+      
+      // 更新界面
+      document.getElementById('adminLoginBtn').style.display = 'flex';
+      document.getElementById('adminLogoutBtn').classList.remove('visible');
+      document.getElementById('adminControls').classList.remove('visible');
+      
+      showStatus('已退出管理员登录', 'success');
+    }
+
+    // 检查管理员登录状态
+    function checkAdminLoginStatus() {
+      const savedStatus = localStorage.getItem('adminLoggedIn');
+      if (savedStatus === 'true') {
+        isAdminLoggedIn = true;
+        document.getElementById('adminLoginBtn').style.display = 'none';
+        document.getElementById('adminLogoutBtn').classList.add('visible');
+        document.getElementById('adminControls').classList.add('visible');
+        
+        // 加载现有数据记录列表
+        loadDataRecordsList();
+        
+        // 填充当前标题到输入框
+        const currentTitle = document.getElementById('systemTitle').textContent;
+        document.getElementById('newSystemTitle').value = currentTitle;
+      }
+      
+      // 检查是否有自定义标题
+      const savedTitle = localStorage.getItem('systemTitle');
+      if (savedTitle) {
+        document.getElementById('systemTitle').textContent = savedTitle;
+      }
+    }
+
+    // 加载现有数据记录列表
+    function loadDataRecordsList() {
+      const listContainer = document.getElementById('dataRecordsList');
+      listContainer.innerHTML = '';
+      
+      let hasRecords = false;
+      
+      // 遍历localStorage中的所有记录
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        // 识别记录数据的键名格式：pondData_塘口_年份_月份
+        if (key.startsWith('pondData_')) {
+          hasRecords = true;
+          const parts = key.split('_');
+          if (parts.length >= 4) {
+            const pond = parts[1];
+            const year = parts[2];
+            const month = parts[3];
+            
+            const item = document.createElement('div');
+            item.className = 'data-record-item';
+            item.innerHTML = `
+              <div class="record-info">
+                <div>${pond}</div>
+                <div class="record-date">${year}年${month}月</div>
+              </div>
+              <button class="delete-btn" 
+                      onclick="deleteSpecificRecord('${pond}', '${year}', '${month}')">
+                <i class="fas fa-trash"></i> 删除
+              </button>
+            `;
+            listContainer.appendChild(item);
+          }
+        }
+      }
+      
+      if (!hasRecords) {
+        listContainer.innerHTML = '<div style="padding: 1rem; text-align: center; color: #999;">暂无记录数据</div>';
+      }
+    }
+
+    // 删除特定记录
+    function deleteSpecificRecord(pond = null, year = null, month = null) {
+      // 如果参数未提供，则从表单获取
+      if (!pond || !year || !month) {
+        pond = document.getElementById('deletePondSelect').value;
+        year = document.getElementById('deleteYearSelect').value;
+        month = document.getElementById('deleteMonthSelect').value;
+      }
+      
+      if (!pond || !year || !month) {
+        showStatus('请选择要删除的塘口、年份和月份', 'warning');
+        return;
+      }
+      
+      const storageKey = `pondData_${pond}_${year}_${month}`;
+      
+      // 检查记录是否存在
+      if (!localStorage.getItem(storageKey)) {
+        showStatus(`未找到 ${pond} ${year}年${month}月 的记录数据`, 'warning');
+        return;
+      }
+      
+      if (confirm(`确定要删除 ${pond} ${year}年${month}月 的记录数据吗？`)) {
+        // 删除记录
+        localStorage.removeItem(storageKey);
+        
+        // 如果当前正在查看的是被删除的记录，刷新表格
+        const currentPond = document.getElementById('pond').value;
+        const currentYear = document.getElementById('recordYearSelect').value;
+        const currentMonth = document.getElementById('recordMonthSelect').value;
+        
+        if (currentPond === pond && currentYear === year && currentMonth === month) {
+          document.getElementById('tableBody').innerHTML = '';
+          updateTableVisibility(false);
+          currentData = null;
+          showStatus('当前查看的记录已被删除', 'warning');
+        }
+        
+        // 更新记录列表
+        loadDataRecordsList();
+        
+        // 更新统计数据
+        calculateStatistics();
+        
+        showStatus(`已删除 ${pond} ${year}年${month}月 的记录数据`, 'success');
+      }
+    }
+
+    // 显示删除所有记录确认框
+    function showDeleteAllConfirm() {
+      document.getElementById('deleteAllConfirmModal').classList.add('visible');
+      document.getElementById('confirmDeleteText').value = '';
+      document.getElementById('confirmDeleteText').focus();
+    }
+
+    // 隐藏删除所有记录确认框
+    function hideDeleteAllConfirmModal() {
+      document.getElementById('deleteAllConfirmModal').classList.remove('visible');
+    }
+
+    // 删除所有记录
+    function deleteAllRecords() {
+      const confirmText = document.getElementById('confirmDeleteText').value.trim();
+      
+      if (confirmText !== 'DELETE') {
+        showStatus('请输入"DELETE"确认删除所有数据', 'warning');
+        return;
+      }
+      
+      if (confirm('最后确认：确定要删除所有记录数据吗？此操作无法撤销！')) {
+        // 遍历并删除所有记录数据
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key.startsWith('pondData_')) {
+            keysToRemove.push(key);
+          }
+        }
+        
+        keysToRemove.forEach(key => {
+          localStorage.removeItem(key);
+        });
+        
+        // 重置当前表格
+        document.getElementById('tableBody').innerHTML = '';
+        updateTableVisibility(false);
+        currentData = null;
+        
+        // 更新记录列表
+        loadDataRecordsList();
+        
+        // 更新统计数据
+        calculateStatistics();
+        
+        // 隐藏确认框
+        hideDeleteAllConfirmModal();
+        
+        showStatus('所有记录数据已删除', 'success');
+      }
+    }
+
+    // 绑定实时统计事件
+    function bindRealTimeStatsEvents() {
+      const statsControls = [
+        'startYearSelect', 
+        'startMonthSelect', 
+        'endYearSelect', 
+        'endMonthSelect', 
+        'statsPondSelect'
+      ];
+      
+      statsControls.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+          // 移除可能存在的旧事件，避免重复绑定
+          element.removeEventListener('change', handleStatsChange);
+          // 绑定新事件
+          element.addEventListener('change', handleStatsChange);
+        }
+      });
+    }
+
+    // 统计变化处理函数
+    function handleStatsChange() {
+      // 防抖处理，避免频繁计算
+      clearTimeout(statsDebounceTimer);
+      statsDebounceTimer = setTimeout(() => {
+        showStatsLoading(true);
+        calculateStatistics();
+      }, 300);
+    }
+
+    // 绑定统计标签切换事件
+    function bindStatsTabEvents() {
+      const tabs = document.querySelectorAll('.stats-tab');
+      tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+          document.querySelectorAll('.stats-tab').forEach(t => t.classList.remove('active'));
+          document.querySelectorAll('.stats-tab-content').forEach(c => c.classList.remove('active'));
+          
+          this.classList.add('active');
+          const tabId = this.getAttribute('data-tab');
+          const content = document.getElementById(tabId);
+          if (content) {
+            content.classList.add('active');
+          }
+        });
+      });
+    }
+
+    function handlePondChange() {
+      updateCurrentDataInfo();
+      const pond = document.getElementById('pond').value;
+      if (pond) {
+        autoLoadData();
+      } else {
+        document.getElementById('tableBody').innerHTML = '';
+        updateTableVisibility(false);
+        showStatus('请选择塘口查看数据', 'warning');
+      }
+    }
+
+    function handleYearMonthChange() {
+      updateCurrentDataInfo();
+      const pond = document.getElementById('pond').value;
+      if (pond) {
+        autoLoadData();
+      }
+    }
+
+    function updateCurrentDataInfo() {
+      const pond = document.getElementById('pond').value || '未选择塘口';
+      const year = document.getElementById('recordYearSelect').value;
+      const month = document.getElementById('recordMonthSelect').value;
+      
+      document.getElementById('currentPondText').textContent = pond;
+      document.getElementById('currentDateText').textContent = `${year}年${month}月`;
+    }
+
+    function updateTableVisibility(hasData) {
+      const table = document.getElementById('recordTable');
+      const placeholder = document.getElementById('tablePlaceholder');
+      
+      if (hasData) {
+        table.style.display = 'table';
+        placeholder.style.display = 'none';
+      } else {
+        table.style.display = 'none';
+        placeholder.style.display = 'block';
+      }
+    }
+
+    function autoLoadData() {
+      isLoading = true;
+      const pond = document.getElementById('pond').value;
+      const year = document.getElementById('recordYearSelect').value;
+      const month = document.getElementById('recordMonthSelect').value;
+      const storageKey = `pondData_${pond}_${year}_${month}`;
+      const storedData = localStorage.getItem(storageKey);
+      
+      showStatus(`正在加载 ${pond} ${year}年${month}月 的数据...`, 'success');
+      
+      setTimeout(() => {
+        if (storedData) {
+          const data = JSON.parse(storedData);
+          currentData = data;
+          document.getElementById('recorder').value = data.recorder || '';
+          updateTableDays();
+          updateTableVisibility(true);
+          
+          const keyPrefix = `${pond}_${year}_${month}`;
+          if (data.lastModified) {
+            lastModifiedTimes[keyPrefix] = data.lastModified;
+          }
+          
+          setTimeout(() => {
+            const days = getDaysInYearMonth(parseInt(year), parseInt(month));
+            for (let day = 1; day <= days; day++) {
+              const record = data.records?.[day] || {};
+              document.querySelector(`.amount-input[data-day="${day}"][data-type="颗粒"]`).value = record.颗粒 || '';
+              document.querySelector(`.amount-input[data-day="${day}"][data-type="膨化"]`).value = record.膨化 || '';
+              document.querySelector(`.amount-input[data-day="${day}"][data-type="发酵"]`).value = record.发酵 || '';
+              document.querySelector(`.amount-input[data-day="${day}"][data-type="粉料"]`).value = record.粉料 || '';
+              document.querySelector(`.loss[data-day="${day}"]`).value = record.loss || '';
+              document.querySelector(`.medicine[data-day="${day}"]`).value = record.medicine || '';
+            }
+            showStatus(`${pond} ${year}年${month}月 数据加载成功`, 'success');
+          }, 100);
+        } else {
+          updateTableDays();
+          updateTableVisibility(true);
+          showStatus(`${pond} ${year}年${month}月 未找到历史记录，已初始化新表格`, 'warning');
+        }
+        isLoading = false;
+      }, 600);
+    }
+
+    function showStatus(message, type) {
+      const statusElement = document.getElementById('statusMessage');
+      statusElement.textContent = message;
+      statusElement.className = 'status-message';
+      statusElement.classList.add(
+        type === 'success' ? 'status-success' : 
+        type === 'error' ? 'status-error' : 'status-warning'
+      );
+      statusElement.style.display = 'block';
+      
+      setTimeout(() => {
+        statusElement.style.display = 'none';
+      }, 5000);
+    }
+
+    function showAutoSaveIndicator() {
+      const indicator = document.getElementById('autoSaveIndicator');
+      indicator.classList.add('visible');
+      
+      setTimeout(() => {
+        indicator.classList.remove('visible');
+      }, 2000);
+    }
+
+    function getDaysInYearMonth(year, month) {
+      return new Date(year, month, 0).getDate();
+    }
+
+    function scheduleAutoSave() {
+      if (saveTimeout) clearTimeout(saveTimeout);
+      
+      saveTimeout = setTimeout(() => {
+        autoSaveData();
+      }, 1000);
+    }
+
+    function autoSaveData() {
+      const pond = document.getElementById('pond').value;
+      const year = document.getElementById('recordYearSelect').value;
+      const month = document.getElementById('recordMonthSelect').value;
+      const recorder = document.getElementById('recorder').value;
+      
+      if (!pond) {
+        showStatus('请先选择塘口', 'warning');
+        return;
+      }
+      if (!recorder) {
+        showStatus('请先选择记录人', 'warning');
+        return;
+      }
+      
+      const storageKey = `pondData_${pond}_${year}_${month}`;
+      
+      const data = {
+        pond: pond,
+        year: year,
+        month: month,
+        recorder: recorder,
+        records: {},
+        lastModified: {}
+      };
+
+      const days = getDaysInYearMonth(parseInt(year), parseInt(month));
+      const keyPrefix = `${pond}_${year}_${month}`;
+      
+      for (let day = 1; day <= days; day++) {
+        const 颗粒 = document.querySelector(`.amount-input[data-day="${day}"][data-type="颗粒"]`).value;
+        const 膨化 = document.querySelector(`.amount-input[data-day="${day}"][data-type="膨化"]`).value;
+        const 发酵 = document.querySelector(`.amount-input[data-day="${day}"][data-type="发酵"]`).value;
+        const 粉料 = document.querySelector(`.amount-input[data-day="${day}"][data-type="粉料"]`).value;
+        const loss = document.querySelector(`.loss[data-day="${day}"]`).value;
+        const medicine = document.querySelector(`.medicine[data-day="${day}"]`).value;
+        
+        data.records[day] = {
+          颗粒,
+          膨化,
+          发酵,
+          粉料,
+          loss,
+          medicine
+        };
+        
+        const now = new Date().toISOString();
+        data.lastModified[day] = now;
+        if (!lastModifiedTimes[keyPrefix]) lastModifiedTimes[keyPrefix] = {};
+        lastModifiedTimes[keyPrefix][day] = now;
+      }
+
+      localStorage.setItem(storageKey, JSON.stringify(data));
+      currentData = data;
+      showAutoSaveIndicator();
+      
+      // 如果是管理员且记录列表已显示，更新记录列表
+      if (isAdminLoggedIn) {
+        loadDataRecordsList();
+      }
+      
+      // 数据变化后也更新统计
+      handleStatsChange();
+    }
+
+    function updateTableDays() {
+      const pond = document.getElementById('pond').value;
+      const year = parseInt(document.getElementById('recordYearSelect').value);
+      const month = parseInt(document.getElementById('recordMonthSelect').value);
+      const days = getDaysInYearMonth(year, month);
+
+      const tableBody = document.getElementById('tableBody');
+      tableBody.innerHTML = '';
+      
+      const keyPrefix = `${pond}_${year}_${month}`;
+      if (!lastModifiedTimes[keyPrefix]) {
+        lastModifiedTimes[keyPrefix] = {};
+      }
+
+      for (let day = 1; day <= days; day++) {
+        const row = document.createElement('tr');
+        
+        if (!lastModifiedTimes[keyPrefix][day]) {
+          lastModifiedTimes[keyPrefix][day] = new Date().toISOString();
+        }
+        
+        const isOldData = isMoreThanThreeDaysOld(
+          new Date(lastModifiedTimes[keyPrefix][day]),
+          new Date(year, month - 1, day)
+        );
+
+        const lockClass = isOldData ? 'edit-lock-tooltip' : '';
+        const lockTooltip = isOldData ? '连续点击3次可编辑' : '';
+
+        row.innerHTML = `
+          <td><div class="day-number">${day}</div></td>
+          <td>
+            <input type="number" min="0" max="150" 
+                   class="amount-input number-input ${lockClass}" 
+                   data-day="${day}" 
+                   data-type="颗粒" 
+                   placeholder="数" 
+                   data-tooltip="${lockTooltip}"
+                   oninput="scheduleAutoSave()"
+                   onchange="scheduleAutoSave()"
+                   onkeydown="handleFeedInputKeydown(event, ${day}, '颗粒')">
+          </td>
+          <td>
+            <input type="number" min="0" max="150" 
+                   class="amount-input number-input ${lockClass}" 
+                   data-day="${day}" 
+                   data-type="膨化" 
+                   placeholder="数" 
+                   data-tooltip="${lockTooltip}"
+                   oninput="scheduleAutoSave()"
+                   onchange="scheduleAutoSave()"
+                   onkeydown="handleFeedInputKeydown(event, ${day}, '膨化')">
+          </td>
+          <td>
+            <input type="number" min="0" max="20" 
+                   class="amount-input number-input ${lockClass}" 
+                   data-day="${day}" 
+                   data-type="发酵" 
+                   placeholder="数" 
+                   data-tooltip="${lockTooltip}"
+                   oninput="scheduleAutoSave()"
+                   onchange="scheduleAutoSave()"
+                   onkeydown="handleFeedInputKeydown(event, ${day}, '发酵')">
+          </td>
+          <td>
+            <input type="number" min="0" max="150" 
+                   class="amount-input number-input ${lockClass}" 
+                   data-day="${day}" 
+                   data-type="粉料" 
+                   placeholder="数" 
+                   data-tooltip="${lockTooltip}"
+                   oninput="scheduleAutoSave()"
+                   onchange="scheduleAutoSave()"
+                   onkeydown="handleFeedInputKeydown(event, ${day}, '粉料')">
+          </td>
+          <td>
+            <textarea class="loss-input loss ${lockClass}" 
+                      data-day="${day}" 
+                      placeholder="例如：2条草鱼，缺氧" 
+                      data-tooltip="${lockTooltip}"
+                      oninput="scheduleAutoSave()"
+                      onchange="scheduleAutoSave()"></textarea>
+          </td>
+          <td>
+            <textarea class="medicine-input medicine ${lockClass}" 
+                      data-day="${day}" 
+                      placeholder="例如：生石灰，5kg，全塘泼洒" 
+                      data-tooltip="${lockTooltip}"
+                      oninput="scheduleAutoSave()"
+                      onchange="scheduleAutoSave()"></textarea>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      }
+
+      bindInputClickEvents(keyPrefix);
+    }
+
+    // 处理饲料输入框的键盘事件
+    function handleFeedInputKeydown(event, day, type) {
+      // Enter键切换至次日同一饲料类型
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        const nextDay = day + 1;
+        const maxDay = getDaysInYearMonth(
+          parseInt(document.getElementById('recordYearSelect').value),
+          parseInt(document.getElementById('recordMonthSelect').value)
+        );
+        if (nextDay <= maxDay) {
+          const nextInput = document.querySelector(`.amount-input[data-day="${nextDay}"][data-type="${type}"]`);
+          if (nextInput) nextInput.focus();
+        }
+      }
+      // Esc键清空当前输入
+      else if (event.key === 'Escape') {
+        event.target.value = '';
+        scheduleAutoSave();
+      }
+    }
+
+    function bindInputClickEvents(keyPrefix) {
+      const inputs = document.querySelectorAll('#tableBody input, #tableBody textarea');
+      inputs.forEach(input => {
+        input.addEventListener('click', function(e) {
+          const day = this.getAttribute('data-day');
+          const type = this.getAttribute('data-type') || 'text';
+          const inputKey = `${keyPrefix}-${day}-${type}`;
+          const year = parseInt(document.getElementById('recordYearSelect').value);
+          const month = parseInt(document.getElementById('recordMonthSelect').value);
+          
+          const isOldData = isMoreThanThreeDaysOld(
+            new Date(lastModifiedTimes[keyPrefix][day]),
+            new Date(year, month - 1, day)
+          );
+
+          // 管理员不受编辑限制
+          if (isOldData && !isAdminLoggedIn) {
+            editClickCount[inputKey] = (editClickCount[inputKey] || 0) + 1;
+            
+            if (editClickCount[inputKey] < 3) {
+              e.preventDefault();
+              e.stopPropagation();
+              this.blur();
+              showStatus(`请再点击 ${3 - editClickCount[inputKey]} 次以编辑历史数据`, 'warning');
+            } else {
+              editClickCount[inputKey] = 0;
+              showStatus('已解锁编辑权限', 'success');
+            }
+          }
+        });
+      });
+    }
+
+    function isMoreThanThreeDaysOld(lastModified, recordDate) {
+      const recordMidnight = new Date(recordDate);
+      recordMidnight.setHours(23, 59, 59, 999);
+      
+      const threeDaysAgo = new Date();
+      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+      threeDaysAgo.setHours(0, 0, 0, 0);
+      
+      // 管理员不受此限制
+      return isAdminLoggedIn ? false : recordMidnight < threeDaysAgo;
+    }
+
+    function exportToExcel() {
+      document.getElementById('exportLoading').style.display = 'block';
+      
+      try {
+        if (typeof XLSX === 'undefined') {
+          throw new Error('导出功能依赖的库未加载，请刷新页面重试');
+        }
+        
+        if (!currentData) {
+          throw new Error('未找到可导出的数据，请确保已选择塘口并加载数据');
+        }
+        
+        const { pond, year, month } = currentData;
+        
+        if (!pond || !year || !month) {
+          throw new Error('数据信息不完整，无法导出');
+        }
+        
+        const days = getDaysInYearMonth(parseInt(year), parseInt(month));
+        const wsData = [
+          [`${pond} ${year}年${month}月鱼塘养殖记录`, '', '', '', '', '', ''],
+          [`记录人：${currentData.recorder || '未填写'}`, '', '', '', '', '', ''],
+          [`导出时间：${new Date().toLocaleString()}`, '', '', '', '', '', ''],
+          ['', '', '', '', '', '', ''],
+          ['日期', '颗粒(包)', '膨化(包)', '发酵(包)', '粉料(包)', '损耗', '用药记录']
+        ];
+        
+        for (let day = 1; day <= days; day++) {
+          const 颗粒 = document.querySelector(`.amount-input[data-day="${day}"][data-type="颗粒"]`).value || '';
+          const 膨化 = document.querySelector(`.amount-input[data-day="${day}"][data-type="膨化"]`).value || '';
+          const 发酵 = document.querySelector(`.amount-input[data-day="${day}"][data-type="发酵"]`).value || '';
+          const 粉料 = document.querySelector(`.amount-input[data-day="${day}"][data-type="粉料"]`).value || '';
+          const loss = document.querySelector(`.loss[data-day="${day}"]`).value || '';
+          const medicine = document.querySelector(`.medicine[data-day="${day}"]`).value || '';
+          
+          wsData.push([
+            day,
+            颗粒,
+            膨化,
+            发酵,
+            粉料,
+            loss,
+            medicine
+          ]);
+        }
+        
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        const wscols = [
+          {wch: 6},  // 日期
+          {wch: 10},  // 颗粒
+          {wch: 10},  // 膨化
+          {wch: 10},  // 发酵
+          {wch: 10},  // 粉料
+          {wch: 20}, // 损耗
+          {wch: 30}  // 用药记录
+        ];
+        ws['!cols'] = wscols;
+        
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, '养殖记录');
+        
+        const fileName = `${pond}_${year}年${month}月记录.xlsx`;
+        XLSX.writeFile(wb, fileName);
+        
+        let successMsg = `导出成功！文件名为：${fileName}`;
+        if (isMobile) {
+          successMsg += '\n文件已保存到"下载"文件夹，可通过文件管理APP查找';
+        }
+        showStatus(successMsg, 'success');
+        
+      } catch (error) {
+        showStatus(`导出失败：${error.message}`, 'error');
+        console.error('导出错误:', error);
+      } finally {
+        document.getElementById('exportLoading').style.display = 'none';
+      }
+    }
+
+    // 显示/隐藏统计加载提示
+    function showStatsLoading(show) {
+      const loading = document.getElementById('statsLoading');
+      if (loading) {
+        loading.style.display = show ? 'block' : 'none';
+      }
+    }
+
+    // 实时统计函数
+    function calculateStatistics() {
+      const statsPond = document.getElementById('statsPondSelect').value;
+      const startYear = parseInt(document.getElementById('startYearSelect').value);
+      const startMonth = parseInt(document.getElementById('startMonthSelect').value);
+      const endYear = parseInt(document.getElementById('endYearSelect').value);
+      const endMonth = parseInt(document.getElementById('endMonthSelect').value);
+
+      // 验证时间范围
+      if (startYear > endYear || (startYear === endYear && startMonth > endMonth)) {
+        showStatus('开始时间不能晚于结束时间', 'error');
+        showStatsLoading(false);
+        return;
+      }
+
+      // 初始化统计数据
+      const stats = {
+        totalFeeds: { 颗粒: 0, 膨化: 0, 发酵: 0, 粉料: 0, total: 0 },
+        loss: {
+          byBreed: {},       // 按鱼类品种统计
+          byPondBreed: {},   // 按塘口-鱼类品种统计
+          byPondTotal: {}    // 各塘口总损耗
+        },
+        pondFeeds: {},       // 各塘口饲料用量
+        monthly: [],
+        totalMedicineCount: 0,
+        totalLossCount: 0
+      };
+
+      // 定义所有鱼品种
+      const fishBreeds = ['草鱼', '鲫鱼', '鮰鱼', '黄金鲫', '乌青', '花鲢', '白鲢', '鲻鱼', '虾'];
+
+      // 获取所有塘口列表
+      const allPonds = Array.from(document.querySelectorAll('#pond option'))
+        .filter(option => option.value)
+        .map(option => option.value);
+      
+      // 筛选需要统计的塘口
+      const targetPonds = statsPond ? [statsPond] : allPonds;
+
+      // 初始化塘口数据结构
+      targetPonds.forEach(pond => {
+        stats.pondFeeds[pond] = { 颗粒: 0, 膨化: 0, 发酵: 0, 粉料: 0, total: 0 };
+        
+        // 初始化损耗统计结构（按塘口-鱼品种）
+        stats.loss.byPondBreed[pond] = {};
+        fishBreeds.forEach(breed => {
+          stats.loss.byPondBreed[pond][breed] = 0; // 初始化每个塘口的每种鱼损耗为0
+        });
+        stats.loss.byPondTotal[pond] = 0; // 塘口总损耗
+      });
+
+      // 遍历时间段内的所有月份
+      let currentY = startYear;
+      let currentM = startMonth;
+      
+      while (true) {
+        targetPonds.forEach(pond => {
+          const storageKey = `pondData_${pond}_${currentY}_${currentM}`;
+          const monthData = localStorage.getItem(storageKey);
+          const daysInMonth = getDaysInYearMonth(currentY, currentM);
+          const monthlyKey = `${pond}_${currentY}_${currentM}`;
+          
+          // 初始化月度统计
+          if (!stats.monthly.find(item => item.key === monthlyKey)) {
+            stats.monthly.push({
+              key: monthlyKey,
+              month: `${currentY}年${currentM}月`,
+              pond: pond,
+              totalFeed: 0,
+              avgDailyFeed: 0,
+              totalLoss: 0,
+              medicineCount: 0
+            });
+          }
+          const monthStats = stats.monthly.find(item => item.key === monthlyKey);
+
+          if (monthData) {
+            const data = JSON.parse(monthData);
+            for (let day = 1; day <= daysInMonth; day++) {
+              const dayRecord = data.records?.[day] || {};
+              
+              // 1. 饲料统计（按塘口-种类）
+              const 颗粒 = parseInt(dayRecord.颗粒 || 0);
+              const 膨化 = parseInt(dayRecord.膨化 || 0);
+              const 发酵 = parseInt(dayRecord.发酵 || 0);
+              const 粉料 = parseInt(dayRecord.粉料 || 0);
+              
+              // 累加总统计
+              stats.totalFeeds.颗粒 += 颗粒;
+              stats.totalFeeds.膨化 += 膨化;
+              stats.totalFeeds.发酵 += 发酵;
+              stats.totalFeeds.粉料 += 粉料;
+              
+              // 累加塘口统计
+              stats.pondFeeds[pond].颗粒 += 颗粒;
+              stats.pondFeeds[pond].膨化 += 膨化;
+              stats.pondFeeds[pond].发酵 += 发酵;
+              stats.pondFeeds[pond].粉料 += 粉料;
+              
+              // 累加月度统计
+              monthStats.totalFeed += 颗粒 + 膨化 + 发酵 + 粉料;
+
+              // 2. 损耗统计（按塘口-鱼类种类）
+              if (dayRecord.loss) {
+                const lossInfo = parseLossRecord(dayRecord.loss);
+                lossInfo.forEach(item => {
+                  // 匹配标准鱼品种（支持模糊匹配）
+                  const matchedBreed = fishBreeds.find(breed => 
+                    item.breed.includes(breed) || breed.includes(item.breed)
+                  );
+                  
+                  if (matchedBreed) {
+                    // 总鱼类损耗统计
+                    if (!stats.loss.byBreed[matchedBreed]) {
+                      stats.loss.byBreed[matchedBreed] = { 
+                        count: 0, 
+                        reasons: {},
+                        ponds: new Set() // 涉及的塘口
+                      };
+                    }
+                    stats.loss.byBreed[matchedBreed].count += item.count;
+                    stats.loss.byBreed[matchedBreed].ponds.add(pond);
+                    stats.totalLossCount += item.count;
+                    monthStats.totalLoss += item.count;
+                    stats.loss.byPondTotal[pond] += item.count;
+                    
+                    // 塘口-鱼类损耗统计
+                    stats.loss.byPondBreed[pond][matchedBreed] += item.count;
+                    
+                    // 记录损耗原因
+                    if (item.reason) {
+                      if (!stats.loss.byBreed[matchedBreed].reasons[item.reason]) {
+                        stats.loss.byBreed[matchedBreed].reasons[item.reason] = 0;
+                      }
+                      stats.loss.byBreed[matchedBreed].reasons[item.reason]++;
+                    }
+                  }
+                });
+              }
+
+              // 3. 用药记录统计
+              if (dayRecord.medicine) {
+                monthStats.medicineCount++;
+                stats.totalMedicineCount++;
+              }
+            }
+          }
+
+          // 计算月平均投喂量
+          monthStats.avgDailyFeed = monthStats.totalFeed > 0 
+            ? (monthStats.totalFeed / daysInMonth).toFixed(1) 
+            : 0;
+        });
+
+        // 移动到下一个月
+        if (currentY === endYear && currentM === endMonth) break;
+        currentM++;
+        if (currentM > 12) {
+          currentM = 1;
+          currentY++;
+        }
+      }
+
+      // 计算总计
+      stats.totalFeeds.total = stats.totalFeeds.颗粒 + stats.totalFeeds.膨化 + 
+                             stats.totalFeeds.发酵 + stats.totalFeeds.粉料;
+      
+      // 计算各塘口饲料总计
+      targetPonds.forEach(pond => {
+        stats.pondFeeds[pond].total = stats.pondFeeds[pond].颗粒 + stats.pondFeeds[pond].膨化 +
+                                    stats.pondFeeds[pond].发酵 + stats.pondFeeds[pond].粉料;
+      });
+
+      // 渲染统计结果
+      renderStatistics(stats, targetPonds, fishBreeds);
+      
+      // 隐藏加载提示
+      showStatsLoading(false);
+    }
+
+    function parseLossRecord(lossText) {
+      const result = [];
+      const lossRegex = /(\d+)\s*([条只头尾斤公斤])\s*([^，,]+?)(?:[，,]\s*(.+?))?(?:[；;]|$)/g;
+      let match;
+      
+      while ((match = lossRegex.exec(lossText)) !== null) {
+        result.push({
+          count: parseInt(match[1]),
+          unit: match[2].trim(),
+          breed: match[3].trim(),
+          reason: match[4]?.trim() || ''
+        });
+      }
+      
+      if (result.length === 0 && lossText.trim()) {
+        result.push({
+          count: 1,
+          unit: '个',
+          breed: '其他',
+          reason: lossText.trim()
+        });
+      }
+      
+      return result;
+    }
+
+    // 渲染统计结果
+    function renderStatistics(stats, targetPonds, fishBreeds) {
+      // 1. 投喂量汇总
+      const totalStatsBody = document.getElementById('totalStatsBody');
+      if (totalStatsBody) {
+        totalStatsBody.innerHTML = `
+          <tr>
+            <td>总投喂量</td>
+            <td>${stats.totalFeeds.颗粒}</td>
+            <td>${stats.totalFeeds.膨化}</td>
+            <td>${stats.totalFeeds.发酵}</td>
+            <td>${stats.totalFeeds.粉料}</td>
+            <td>${stats.totalFeeds.total}</td>
+          </tr>
+          <tr>
+            <td>占比</td>
+            <td>${calculatePercentage(stats.totalFeeds.颗粒, stats.totalFeeds.total)}</td>
+            <td>${calculatePercentage(stats.totalFeeds.膨化, stats.totalFeeds.total)}</td>
+            <td>${calculatePercentage(stats.totalFeeds.发酵, stats.totalFeeds.total)}</td>
+            <td>${calculatePercentage(stats.totalFeeds.粉料, stats.totalFeeds.total)}</td>
+            <td>100%</td>
+          </tr>
+        `;
+      }
+
+      // 2. 按塘口-饲料种类统计
+      const pondFeedTypeBody = document.getElementById('pondFeedTypeBody');
+      if (pondFeedTypeBody) {
+        pondFeedTypeBody.innerHTML = '';
+        
+        if (targetPonds.length === 0) {
+          pondFeedTypeBody.innerHTML = '<tr><td>暂无数据</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>';
+        } else {
+          targetPonds.forEach(pond => {
+            const feed = stats.pondFeeds[pond];
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${pond}</td>
+              <td>${feed.颗粒}</td>
+              <td>${feed.膨化}</td>
+              <td>${feed.发酵}</td>
+              <td>${feed.粉料}</td>
+              <td>${feed.total}</td>
+            `;
+            pondFeedTypeBody.appendChild(row);
+          });
+        }
+      }
+
+      // 3. 鱼类损耗总统计
+      const lossByBreedBody = document.getElementById('lossByBreedBody');
+      if (lossByBreedBody) {
+        lossByBreedBody.innerHTML = '';
+        
+        if (Object.keys(stats.loss.byBreed).length === 0) {
+          lossByBreedBody.innerHTML = '<tr><td>暂无数据</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>';
+        } else {
+          Object.entries(stats.loss.byBreed).forEach(([breed, info]) => {
+            const mainReason = info.reasons ? Object.entries(info.reasons).sort((a,b)=>b[1]-a[1])[0]?.[0] : '未记录';
+            const ponds = Array.from(info.ponds).join('、');
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${breed}</td>
+              <td>${info.count}</td>
+              <td>${mainReason}</td>
+              <td>${stats.totalLossCount > 0 ? ((info.count / stats.totalLossCount) * 100).toFixed(1) + '%' : '0%'}</td>
+              <td>${ponds || '未知'}</td>
+            `;
+            lossByBreedBody.appendChild(row);
+          });
+        }
+      }
+
+      // 4. 按塘口-鱼类种类损耗统计
+      const pondLossTypeBody = document.getElementById('pondLossTypeBody');
+      if (pondLossTypeBody) {
+        pondLossTypeBody.innerHTML = '';
+        
+        if (targetPonds.length === 0) {
+          pondLossTypeBody.innerHTML = '<tr><td>暂无数据</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>';
+        } else {
+          targetPonds.forEach(pond => {
+            const row = document.createElement('tr');
+            let totalLoss = 0;
+            
+            // 计算该塘口总损耗
+            fishBreeds.forEach(breed => {
+              totalLoss += stats.loss.byPondBreed[pond][breed] || 0;
+            });
+            
+            // 构建表格行内容
+            row.innerHTML = `
+              <td>${pond}</td>
+              ${fishBreeds.map(breed => `<td>${stats.loss.byPondBreed[pond][breed] || 0}</td>`).join('')}
+              <td><strong>${totalLoss}</strong></td>
+            `;
+            pondLossTypeBody.appendChild(row);
+          });
+        }
+      }
+
+      // 5. 月度明细
+      const monthlyStatsBody = document.getElementById('monthlyStatsBody');
+      if (monthlyStatsBody) {
+        monthlyStatsBody.innerHTML = '';
+        
+        if (stats.monthly.length === 0) {
+          monthlyStatsBody.innerHTML = '<tr><td>暂无数据</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>';
+        } else {
+          stats.monthly.forEach(month => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${month.month}<br><small>${month.pond}</small></td>
+              <td>${month.totalFeed}</td>
+              <td>${month.avgDailyFeed}</td>
+              <td>${month.totalLoss}</td>
+              <td>${month.medicineCount}</td>
+            `;
+            monthlyStatsBody.appendChild(row);
+          });
+        }
+      }
+    }
+
+    function calculatePercentage(value, total) {
+      if (total === 0) return '0%';
+      return ((value / total) * 100).toFixed(1) + '%';
+    }
+  </script>
+</body>
+
+</html>
