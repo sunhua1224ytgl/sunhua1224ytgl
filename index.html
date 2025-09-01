@@ -2617,5 +2617,57 @@
     }
   </script>
 </body>
-
+ <!-- ===== 一键保存开始 ===== -->
+ <script src="https://cdn.jsdelivr.net/npm/@octokit/rest/dist/octokit-rest.min.js"></script>
+ <script>
+ /* ========== 只需改这里 3 行 ========== */
+ const TOKEN  = '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';     // 把刚才复制的 token 粘进来
+ const OWNER  = 'sunhua224ytgl';   // 例如 fishboss
+ const REPO   = 'sunhua1224ytgl';        // 例如 fish-farm
+ /* ===================================== */
+ 
+ const FILE   = 'data.json';  // 保存数据的文件名
+ const octokit = new Octokit({ auth: TOKEN });
+ 
+ // 把表格所有 input 的值打包成 json
+ function collectData() {
+   const data = {};
+   document.querySelectorAll('#fishTable input, #fishTable select').forEach(el => {
+     data[el.name || el.id] = el.value;
+   });
+   return data;
+ }
+ 
+ // 一键保存按钮
+ document.body.insertAdjacentHTML('beforeend',
+   `<div style="text-align:center;margin:20px">
+      <button id="saveBtn" style="padding:10px 30px;font-size:18px;background:#28a745;color:#fff;border:none;border-radius:4px;cursor:pointer">一键同步到 GitHub</button>
+      <p id="msg" style="margin-top:10px;color:#333"></p >
+    </div>`);
+ 
+ document.getElementById('saveBtn').onclick = async () => {
+   const msgBox = document.getElementById('msg');
+   msgBox.textContent = '保存中...';
+   try {
+     // 读旧文件（为了拿到 sha）
+     const { data: oldFile } = await octokit.repos.getContent({ owner: OWNER, repo: REPO, path: FILE });
+     await octokit.repos.createOrUpdateFileContents({
+       owner: OWNER, repo: REPO, path: FILE,
+       message: '更新鱼塘数据 ' + new Date().toLocaleString('zh-CN'),
+       content: btoa(JSON.stringify(collectData(), null, 2)),
+       sha: oldFile.sha
+     });
+     msgBox.textContent = '✅ 已保存，请等 30 秒后刷新页面查看';
+   } catch (e) {
+     // 如果 data.json 不存在，就新建
+     await octokit.repos.createOrUpdateFileContents({
+       owner: OWNER, repo: REPO, path: FILE,
+       message: '新建鱼塘数据 ' + new Date().toLocaleString('zh-CN'),
+       content: btoa(JSON.stringify(collectData(), null, 2))
+     });
+     msgBox.textContent = '✅ 已新建并保存，请等 30 秒后刷新页面查看';
+   }
+ };
+ </script>
+ <!-- ===== 一键保存结束 ===== -->
 </html>
